@@ -1,0 +1,128 @@
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
+
+public class ThirdStage {
+    public static void main(String[] args) {
+        System.out.println("Krsna");
+        ThirdProgram();
+    }
+
+    private static void ThirdProgram() {
+        try {
+            Date dt = (new Date());
+            URL restUrI = new URL("https://http-hunt.thoughtworks-labs.net/challenge/input");
+            HttpURLConnection conn = (HttpURLConnection) restUrI.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            }
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty("Accept", "application/json");
+
+
+            JSONObject output = new JSONObject();
+            JSONObject myrequest = null;
+
+            myrequest = new JSONObject(new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream()))).readLine().toString());
+
+            output.put("toolsSortedOnUsage",FindToolUsage(myrequest.getJSONArray("toolUsage")));
+            JSONObject message = new JSONObject();
+            message.put("output", output);
+            System.out.println(message);
+            URL url = new URL("https://http-hunt.thoughtworks-labs.net/challenge/output");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty( "Content-Length", Integer.toString(output.toString().length() ));
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("content-type", "application/json");
+            OutputStreamWriter wr= new OutputStreamWriter(conn.getOutputStream());
+            wr.write(output.toString());
+            wr.flush();
+            Date dt2 = (new Date());
+            System.out.println(dt2.getTime()-dt.getTime());
+            System.out.println(conn.getResponseCode());
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+
+            System.out.println("Output from Server .... \n");
+
+
+            conn.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static JSONArray FindToolUsage(JSONArray toolUsage) {
+        Map<String, Integer> foundToolUsage = new HashMap<>();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+        try {
+
+            for(int i=0; i<toolUsage.length();i++){
+                String toolName = (String) toolUsage.getJSONObject(i).getString("name");
+                //System.out.println(toolName);
+                int usage = (int)(format.parse(toolUsage.getJSONObject(i).getString("useEndTime")).getTime() - format.parse(toolUsage.getJSONObject(i).getString("useStartTime")).getTime());
+                //System.out.println(usage);
+                if(!foundToolUsage.containsKey(toolName)){
+                    foundToolUsage.put(toolName,  (usage/(60*1000)));
+                }else{
+                    foundToolUsage.put(toolName, foundToolUsage.get(toolName)+usage/(60*1000));
+                }
+                //System.out.println(foundToolUsage.get(toolName));
+            }
+
+            final Map<String, Integer> sortedToolUsage = foundToolUsage.entrySet()
+                    .stream()
+                    .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                    .collect(
+                            toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+                                    LinkedHashMap::new));
+            //Map<String, String> mampSortedToolUsage = new HashMap<>();
+            JSONArray jsonArray = new JSONArray();
+            for(String s: sortedToolUsage.keySet()){
+                JSONObject json = new JSONObject();
+                json.put("name", s);
+                json.put("timeUsedInMinutes", foundToolUsage.get(s));
+                jsonArray.put(json);
+            }
+            System.out.println(jsonArray);
+            return jsonArray;
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public class ToolUsageClass{
+        String name;
+        int usage;
+
+
+    }
+
+}

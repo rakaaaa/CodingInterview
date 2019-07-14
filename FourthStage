@@ -1,0 +1,119 @@
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import javax.print.DocFlavor;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.text.ParseException;
+import java.util.*;
+
+import static java.util.stream.Collectors.toMap;
+
+public class FourthStage {
+    public static void main(String[] args) {
+        System.out.println("Krsna");
+        ThirdProgram();
+    }
+
+    private static void ThirdProgram() {
+        try {
+            Date dt = (new Date());
+            URL restUrI = new URL("https://http-hunt.thoughtworks-labs.net/challenge/input");
+            HttpURLConnection conn = (HttpURLConnection) restUrI.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            }
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty("Accept", "application/json");
+
+
+            JSONObject output = new JSONObject();
+            JSONObject myrequest = null;
+
+            myrequest = new JSONObject(new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream()))).readLine().toString());
+
+            output.put("toolsToTakeSorted",FindCorrectTool(myrequest.getInt("maximumWeight"), myrequest.getJSONArray("tools")));
+            JSONObject message = new JSONObject();
+            message.put("output", output);
+            System.out.println(message);
+            URL url = new URL("https://http-hunt.thoughtworks-labs.net/challenge/output");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty( "Content-Length", Integer.toString(output.toString().length() ));
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("content-type", "application/json");
+            OutputStreamWriter wr= new OutputStreamWriter(conn.getOutputStream());
+            wr.write(output.toString());
+            wr.flush();
+            Date dt2 = (new Date());
+            System.out.println(dt2.getTime()-dt.getTime());
+            System.out.println(conn.getResponseCode());
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+
+            System.out.println("Output from Server .... \n");
+
+
+            conn.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static JSONArray FindCorrectTool(int maxWeight, JSONArray toolUsage) {
+        try {
+            System.out.println(maxWeight);
+            System.out.println(toolUsage);
+            Map<String, Integer> mapJson = new HashMap<>();
+            Map<Integer, String> mapCompleteJson = new TreeMap<>(Collections.reverseOrder());
+            for (int i = 0; i < toolUsage.length(); i++) {
+                String toolName = (String) toolUsage.getJSONObject(i).getString("name");
+                int toolWeight = toolUsage.getJSONObject(i).getInt("weight");
+                int toolValue = toolUsage.getJSONObject(i).getInt("value");
+                mapJson.put(toolName, toolWeight);
+                mapCompleteJson.put(toolValue, toolName);
+            }
+            int carryWeight = 0;
+            JSONArray jsonArray = new JSONArray();
+            for(int key : mapCompleteJson.keySet()){
+                if(carryWeight + mapJson.get(mapCompleteJson.get(key)) <= maxWeight){
+                    carryWeight += mapJson.get(mapCompleteJson.get(key));
+                    jsonArray.put(mapCompleteJson.get(key));
+                }
+            }
+            System.out.println(carryWeight);
+            //System.out.println(jsonArray.toString());
+            /*final Map<String, Integer> sortedJson = mapJson.entrySet()
+                    .stream()
+                    .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                    .collect(
+                            toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+                                    LinkedHashMap::new));
+            JSONArray jsonArray = new JSONArray();
+            for(String s: sortedJson.keySet()){
+                System.out.println(s+"====="+sortedJson.get(s));
+                jsonArray.put(s);
+            }*/
+            return jsonArray;
+        }catch(Exception e){
+                e.printStackTrace();
+        }
+        return null;
+    }
+
+}

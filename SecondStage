@@ -1,0 +1,102 @@
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.util.*;
+
+public class SecondStage {
+    public static void main(String[] args) {
+        System.out.println("Krsna");
+        SecondProgram();
+    }
+
+    private static void SecondProgram(){
+        try {
+            Date dt = (new Date());
+            URL restUrI = new URL("https://http-hunt.thoughtworks-labs.net/challenge/input");
+            HttpURLConnection conn = (HttpURLConnection) restUrI.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            }
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty("Accept", "application/json");
+
+
+            JSONObject output = new JSONObject();
+            JSONObject myrequest = null;
+
+            myrequest = new JSONObject(new BufferedReader(new InputStreamReader(
+                        (conn.getInputStream()))).readLine().toString());
+            output.put("toolsFound", FindTools(myrequest.getString("hiddenTools"), myrequest.getJSONArray("tools")));
+            JSONObject message = new JSONObject();
+            message.put("output", output);
+            System.out.println(message);
+            URL url = new URL("https://http-hunt.thoughtworks-labs.net/challenge/output");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty( "Content-Length", Integer.toString(output.toString().length() ));
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("content-type", "application/json");
+            OutputStreamWriter wr= new OutputStreamWriter(conn.getOutputStream());
+            wr.write(output.toString());
+            wr.flush();
+            Date dt2 = (new Date());
+            System.out.println(dt2.getTime()-dt.getTime());
+            System.out.println(conn.getResponseCode());
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+
+            System.out.println("Output from Server .... \n");
+
+
+            conn.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private static String[] FindTools(String hiddenTools, JSONArray tools) {
+        System.out.println(hiddenTools);
+        System.out.println(tools);
+        List<String> toolFound = new LinkedList<String>();
+        int index = 0;
+        int j = 0;
+        for (int itemIndex=0; itemIndex < tools.length(); itemIndex++) {
+            String tempHiddenTools = hiddenTools;
+            char[] currentTool = tools.getString(itemIndex).toCharArray();
+            for(int k=0; k<currentTool.length; k++) {
+                index = tempHiddenTools.indexOf(currentTool[k]);
+                if (index != -1) {
+                    tempHiddenTools = tempHiddenTools.substring(index + 1, tempHiddenTools.length());
+                } else {
+                    break;
+                }
+                if (k == currentTool.length - 1) {
+                    toolFound.add(tools.getString(itemIndex));
+                    j++;
+                }
+            }
+        }
+        String[] finalTool = new String[toolFound.size()];
+        for(int x=0; x<toolFound.size();x++){
+            finalTool[x] = toolFound.get(x);
+        }
+        return finalTool;
+    }
+}

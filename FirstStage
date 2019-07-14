@@ -1,0 +1,95 @@
+import netscape.javascript.JSObject;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
+import java.util.Iterator;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONString;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+public class FirstStage {
+
+    public static void main(String[] args) {
+        System.out.println("Krsna");
+        FirstProgram();
+    }
+
+    public static void FirstProgram(){
+        try {
+            Date dt = (new Date());
+            URL restUrI = new URL("https://http-hunt.thoughtworks-labs.net/challenge/input");
+            HttpURLConnection conn = (HttpURLConnection) restUrI.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty("Accept", "application/json");
+
+
+            JSONObject output = new JSONObject();
+            JSONObject myResponse = new JSONObject(new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream()))).readLine().toString());
+            output.put("message",ShiftAlgo(26-myResponse.getInt("key"), (char[]) myResponse.getString("encryptedMessage").toCharArray()));
+            JSONObject message = new JSONObject();
+            message.put("output", output);
+            System.out.println(message);
+            URL url = new URL("https://http-hunt.thoughtworks-labs.net/challenge/output");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("userId", "A7HG3u8e_");
+            conn.setRequestProperty( "Content-Length", Integer.toString(output.toString().length() ));
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("content-type", "application/json");
+            OutputStreamWriter wr= new OutputStreamWriter(conn.getOutputStream());
+            wr.write(output.toString());
+            wr.flush();
+            Date dt2 = (new Date());
+            System.out.println(dt2.getTime()-dt.getTime());
+            System.out.println(conn.getResponseCode());
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+
+            System.out.println("Output from Server .... \n");
+
+
+            conn.disconnect();
+
+        } catch (MalformedURLException e) {
+
+            e.printStackTrace();
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+
+        }
+
+
+    }
+
+    private static String ShiftAlgo(int key, char[] encryptedMessage) {
+        String bar = "";
+        for (char c: encryptedMessage) {
+            if(c >= 'A' && c <= 'Z') {
+                bar += Character.toString((char) ((c + key - 65) % 26 + 65));
+            }else if(c >= 'a' && c <= 'z'){
+                bar += Character.toString((char) ((c  + key - 97) % 26 + 97));
+            }else{
+                bar += c;
+            }
+        }
+        //System.out.println(bar);
+        return bar;
+    }
+}
